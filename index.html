@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BTS Music Player 💜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0118;
+    --surface: #1a0a2e;
+    --surface2: #2d1050;
+    --accent: #9333ea;
+    --accent2: #c084fc;
+    --accent3: #7c3aed;
+    --text: #f3e8ff;
+    --muted: #a78bca;
+    --dim: #6b4d8a;
+    --border: #3b1070;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); overflow: hidden; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, #3b106033 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 80% 80%, #7c3aed22 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 60% 10%, #9333ea18 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .sidebar {
+    grid-row: 1 / 3;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 20px;
+    overflow-y: auto;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 44px; height: 44px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 20px; color: var(--text); flex-shrink: 0; }
+  .brand-name { font-family: var(--font-display); font-size: 26px; letter-spacing: 2px; line-height: 1; }
+  .brand-sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+  .nav-section h3 { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; font-weight: 400; }
+  .album-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font-body); font-size: 13px; font-weight: 400; transition: all 0.2s; text-align: left; }
+  .album-btn:hover { background: var(--surface2); color: var(--text); }
+  .album-btn.active { background: var(--accent3); color: var(--text); }
+  .album-emoji { font-size: 16px; width: 22px; text-align: center; }
+  .album-count { margin-left: auto; font-size: 11px; background: var(--border); color: var(--dim); padding: 2px 7px; border-radius: 20px; }
+  .album-btn.active .album-count { background: #5b21b6; color: var(--accent2); }
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .main-header { padding: 24px 28px 12px; flex-shrink: 0; }
+  .era-title { font-family: var(--font-display); font-size: 46px; letter-spacing: 3px; line-height: 1; }
+  .era-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .tracklist-scroll { flex: 1; overflow-y: auto; padding: 0 28px 12px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .tracklist-header { display: grid; grid-template-columns: 36px 1fr 170px 56px; gap: 8px; padding: 8px 12px; font-size: 10px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .track-row { display: grid; grid-template-columns: 36px 1fr 170px 56px; gap: 8px; align-items: center; padding: 9px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
+  .track-row:hover { background: var(--surface2); }
+  .track-row.playing { background: #3b107066; border-color: var(--border); }
+  .track-num { font-size: 13px; color: var(--dim); text-align: center; }
+  .track-row.playing .track-num { color: var(--accent2); }
+  .track-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .track-art { width: 38px; height: 38px; border-radius: 8px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; border: 1px solid var(--border); }
+  .track-row.playing .track-art { border-color: var(--accent3); box-shadow: 0 0 10px #7c3aed55; }
+  .track-texts { min-width: 0; }
+  .track-title { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-row.playing .track-title { color: var(--accent2); }
+  .track-album-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .track-album-tag { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-duration { font-size: 12px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
+  .player-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 12px 28px 16px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; flex-shrink: 0; }
+  .now-playing-info { display: flex; align-items: center; gap: 12px; }
+  .now-art { width: 50px; height: 50px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid var(--border); flex-shrink: 0; }
+  .now-text { min-width: 0; }
+  .now-title { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .now-artist { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+  .heart-btn { background: none; border: none; cursor: pointer; color: var(--dim); font-size: 20px; padding: 4px 8px; transition: color 0.2s, transform 0.15s; flex-shrink: 0; }
+  .heart-btn:hover { transform: scale(1.2); color: var(--accent2); }
+  .heart-btn.liked { color: var(--accent2); }
+  .player-center { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .controls { display: flex; align-items: center; gap: 14px; }
+  .ctrl-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 20px; padding: 6px; border-radius: 50%; transition: all 0.15s; display: flex; align-items: center; line-height: 1; }
+  .ctrl-btn:hover { color: var(--text); background: var(--border); }
+  .ctrl-btn.on { color: var(--accent2); }
+  .play-btn { width: 44px; height: 44px; background: var(--accent); border: none; border-radius: 50%; cursor: pointer; color: white; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+  .play-btn:hover { background: var(--accent2); transform: scale(1.06); }
+  .progress-row { display: flex; align-items: center; gap: 10px; width: 340px; }
+  .time { font-size: 11px; color: var(--dim); min-width: 32px; font-variant-numeric: tabular-nums; }
+  .time.right { text-align: right; }
+  .progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; position: relative; transition: width 0.1s linear; }
+  .progress-fill::after { content: ''; position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; background: var(--accent2); border-radius: 50%; opacity: 0; transition: opacity 0.15s; }
+  .progress-bar:hover .progress-fill::after { opacity: 1; }
+  .player-right { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+  .vol-row { display: flex; align-items: center; gap: 8px; }
+  .vol-icon { font-size: 16px; color: var(--dim); }
+  input[type=range].vol { -webkit-appearance: none; appearance: none; width: 80px; height: 4px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range].vol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--accent2); border-radius: 50%; }
+  .playing-dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; animation: pulse 1.2s ease-in-out infinite; display: inline-block; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height: auto; min-height: 100vh; }
+    .sidebar { grid-row: 1; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 12px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .brand { flex-shrink: 0; }
+    .nav-section { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .nav-section h3 { display: none; }
+    .album-btn { padding: 6px 10px; font-size: 12px; }
+    .era-title { font-size: 32px; }
+    .main { overflow: visible; }
+    .tracklist-scroll { overflow: visible; }
+    html, body { overflow: auto; }
+    .tracklist-header, .track-row { grid-template-columns: 32px 1fr 52px; }
+    .tracklist-header > :nth-child(3), .track-row > :nth-child(3) { display: none; }
+    .player-bar { grid-template-columns: 1fr; justify-items: center; gap: 8px; padding: 12px 16px 16px; }
+    .now-playing-info { width: 100%; justify-content: center; }
+    .player-right { display: none; }
+    .progress-row { width: 280px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">BTS</div>
+      <div>
+        <div class="brand-name">ARMY</div>
+        <div class="brand-sub">Music Player</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <h3>Eras</h3>
+      <button class="album-btn active" onclick="selectAlbum(this,'all')"><span class="album-emoji">💜</span> Todas <span class="album-count" id="cnt-all">16</span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'butter')"><span class="album-emoji">🧈</span> Butter <span class="album-count" id="cnt-butter"></span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'love')"><span class="album-emoji">💜</span> Love Yourself <span class="album-count" id="cnt-love"></span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'map')"><span class="album-emoji">🌍</span> Map of the Soul <span class="album-count" id="cnt-map"></span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'wings')"><span class="album-emoji">🦋</span> Wings <span class="album-count" id="cnt-wings"></span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'debut')"><span class="album-emoji">🔥</span> Debut Era <span class="album-count" id="cnt-debut"></span></button>
+      <button class="album-btn" onclick="selectAlbum(this,'solo')"><span class="album-emoji">⭐</span> Solos <span class="album-count" id="cnt-solo"></span></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="era-title" id="eraTitle">TODAS LAS ERAS</div>
+      <div class="era-subtitle" id="eraSubtitle">16 canciones · BTS</div>
+    </div>
+    <div class="tracklist-scroll">
+      <div class="tracklist-header">
+        <span>#</span><span>Canción</span><span>Álbum</span><span style="text-align:right">Dur.</span>
+      </div>
+      <div id="tracklist"></div>
+    </div>
+  </main>
+
+  <div class="player-bar">
+    <div class="now-playing-info">
+      <div class="now-art" id="nowArt">🎵</div>
+      <div class="now-text">
+        <div class="now-title" id="nowTitle">Selecciona una canción</div>
+        <div class="now-artist" id="nowArtist">BTS</div>
+      </div>
+      <button class="heart-btn" id="heartBtn" onclick="toggleLike()">♡</button>
+    </div>
+    <div class="player-center">
+      <div class="controls">
+        <button class="ctrl-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Aleatorio">⇄</button>
+        <button class="ctrl-btn" onclick="prevTrack()" title="Anterior">⏮</button>
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="ctrl-btn" onclick="nextTrack()" title="Siguiente">⏭</button>
+        <button class="ctrl-btn" id="repeatBtn" onclick="toggleRepeat()" title="Repetir">↻</button>
+      </div>
+      <div class="progress-row">
+        <span class="time" id="curTime">0:00</span>
+        <div class="progress-bar" id="progressBar" onclick="seek(event)">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <span class="time right" id="totalTime">0:00</span>
+      </div>
+    </div>
+    <div class="player-right">
+      <div class="vol-row">
+        <span class="vol-icon" id="volIcon">🔈</span>
+        <input type="range" class="vol" min="0" max="100" value="80" oninput="setVol(this.value)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audioPlayer" preload="none" crossorigin="anonymous"></audio>
+
+<script>
+const tracks = [
+  { id:1,  name:'DNA',                  album:'love',   albumName:'Love Yourself: Her',        emoji:'🧬', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848972/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_DNA_Official_MV_hta6we.mp3' },
+  { id:2,  name:'Blood Sweat & Tears',  album:'wings',  albumName:'Wings (2016)',              emoji:'🌹', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848970/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_%ED%94%BC_%EB%95%80_%EB%88%88%EB%AC%BC_Blood_Sweat_Tears_Official_MV_q4oene.mp3' },
+  { id:3,  name:'Boy With Luv',         album:'love',   albumName:'Map of the Soul: Persona',  emoji:'💜', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848969/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_%EC%9E%91%EC%9D%80_%EA%B2%83%EB%93%A4%EC%9D%84_%EC%9C%84%ED%95%9C_%EC%8B%9C_Boy_With_Luv_feat._Halsey_Official_MV_qczjyj.mp3' },
+  { id:4,  name:'Spring Day',           album:'wings',  albumName:'You Never Walk Alone',      emoji:'🌸', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848969/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_%EB%B4%84%EB%82%A0_Spring_Day_Official_MV_dt8gxi.mp3' },
+  { id:5,  name:'Singularity (V)',       album:'solo',   albumName:'Love Yourself: Tear',       emoji:'🎭', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848966/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_LOVE_YOURSELF_%E8%BD%89_Tear_Singularity_Comeback_Trailer_h5w8qn.mp3' },
+  { id:6,  name:'Epiphany (Jin)',        album:'solo',   albumName:'Love Yourself: Answer',     emoji:'🌟', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848965/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_LOVE_YOURSELF_%E7%B5%90_Answer_Epiphany_Comeback_Trailer_eqdih3.mp3' },
+  { id:7,  name:'Fake Love',            album:'love',   albumName:'Love Yourself: Tear',       emoji:'💔', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848964/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_FAKE_LOVE_Official_MV_nnhco4.mp3' },
+  { id:8,  name:'Dynamite',             album:'butter', albumName:'Butter (2021)',              emoji:'✨', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848964/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_Dynamite_Official_MV_jsk07j.mp3' },
+  { id:9,  name:'IDOL',                 album:'love',   albumName:'Love Yourself: Answer',     emoji:'🎭', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848964/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_IDOL_Official_MV_e1bcxh.mp3' },
+  { id:10, name:'Black Swan',           album:'map',    albumName:'Map of the Soul: 7',        emoji:'🦢', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848963/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_Black_Swan_Official_MV_uqedhy.mp3' },
+  { id:11, name:'Butter',               album:'butter', albumName:'Butter (2021)',              emoji:'🧈', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848963/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_Butter_Official_MV_w7vgoq.mp3' },
+  { id:12, name:'N.O',                  album:'debut',  albumName:'O!RUL8,2? (2013)',           emoji:'✊', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848963/MV_BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_N.O_%EC%97%94.%EC%98%A4_uyqefv.mp3' },
+  { id:13, name:'Agust D',              album:'solo',   albumName:'Agust D (2016)',             emoji:'🐱', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848963/Agust_D_Agust_D_MV_cbr9el.mp3' },
+  { id:14, name:'Permission to Dance',  album:'butter', albumName:'Butter (2021)',              emoji:'💃', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779849417/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_Permission_to_Dance_Official_MV_w9emyd.mp3' },
+  { id:15, name:'ON',                   album:'map',    albumName:'Map of the Soul: 7',        emoji:'🔥', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779849498/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_ON_Official_MV_l7mkey.mp3' },
+  { id:16, name:'No More Dream',        album:'debut',  albumName:'2 Cool 4 Skool (2013)',     emoji:'😤', url:'https://res.cloudinary.com/duxag6c3i/video/upload/v1779848970/BTS_%EB%B0%A9%ED%83%84%EC%86%8C%EB%85%84%EB%8B%A8_%ED%94%BC_%EB%95%80_%EB%88%88%EB%AC%BC_Blood_Sweat_Tears_Official_MV_1_cho7lo.mp3' },
+];
+
+const eraNames = {
+  all:    ['TODAS LAS ERAS',    '16 canciones · BTS'],
+  butter: ['BUTTER ERA',        '3 canciones · 2021'],
+  love:   ['LOVE YOURSELF ERA', '4 canciones · 2017–2018'],
+  map:    ['MAP OF THE SOUL',   '2 canciones · 2020'],
+  wings:  ['WINGS ERA',         '2 canciones · 2016'],
+  debut:  ['DEBUT ERA',         '2 canciones · 2013'],
+  solo:   ['SOLOS',             '3 canciones · members'],
+};
+
+let currentAlbum = 'all';
+let currentId    = -1;
+let isPlaying    = false;
+let isShuffle    = false;
+let isRepeat     = false;
+let liked        = new Set();
+
+const audio = document.getElementById('audioPlayer');
+
+function fmt(s) {
+  s = Math.floor(s);
+  return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
+
+function filtered() {
+  return currentAlbum === 'all' ? tracks : tracks.filter(t => t.album === currentAlbum);
+}
+
+function currentTrack() {
+  return tracks.find(t => t.id === currentId) || null;
+}
+
+function updateCounts() {
+  Object.keys(eraNames).forEach(k => {
+    const el = document.getElementById('cnt-' + k);
+    if (!el) return;
+    el.textContent = k === 'all' ? tracks.length : tracks.filter(t => t.album === k).length;
+  });
+}
+
+function renderTracks() {
+  const list = filtered();
+  document.getElementById('tracklist').innerHTML = list.map((t, i) => {
+    const playing = t.id === currentId;
+    return `<div class="track-row ${playing ? 'playing' : ''}" onclick="selectTrack(${t.id})">
+      <span class="track-num">${playing && isPlaying ? '<span class="playing-dot"></span>' : (i+1)}</span>
+      <div class="track-main">
+        <div class="track-art">${t.emoji}</div>
+        <div class="track-texts">
+          <div class="track-title">${t.name}</div>
+          <div class="track-album-name">${t.albumName}</div>
+        </div>
+      </div>
+      <span class="track-album-tag">${t.albumName}</span>
+      <span class="track-duration">--:--</span>
+    </div>`;
+  }).join('');
+}
+
+function selectAlbum(btn, id) {
+  currentAlbum = id;
+  document.querySelectorAll('.album-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const [title, sub] = eraNames[id];
+  document.getElementById('eraTitle').textContent   = title;
+  document.getElementById('eraSubtitle').textContent = sub;
+  renderTracks();
+}
+
+function selectTrack(id) {
+  currentId = id;
+  const t = currentTrack();
+  if (!t) return;
+  audio.src = t.url;
+  audio.load();
+  audio.play().catch(e => console.log(e));
+  isPlaying = true;
+  updatePlayer();
+  renderTracks();
+}
+
+function updatePlayer() {
+  const t = currentTrack();
+  if (!t) return;
+  document.getElementById('nowArt').textContent    = t.emoji;
+  document.getElementById('nowTitle').textContent  = t.name;
+  document.getElementById('nowArtist').textContent = 'BTS · ' + t.albumName;
+  const hb = document.getElementById('heartBtn');
+  hb.textContent = liked.has(t.id) ? '♥' : '♡';
+  hb.classList.toggle('liked', liked.has(t.id));
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸' : '▶';
+}
+
+audio.addEventListener('timeupdate', () => {
+  const dur = audio.duration || 1;
+  const pct = (audio.currentTime / dur * 100).toFixed(1);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('curTime').textContent = fmt(audio.currentTime);
+  if (audio.duration) document.getElementById('totalTime').textContent = fmt(audio.duration);
+});
+
+audio.addEventListener('ended', () => {
+  if (isRepeat) { audio.currentTime = 0; audio.play(); }
+  else nextTrack();
+});
+
+audio.addEventListener('play',  () => { isPlaying = true;  document.getElementById('playBtn').textContent = '⏸'; renderTracks(); });
+audio.addEventListener('pause', () => { isPlaying = false; document.getElementById('playBtn').textContent = '▶'; renderTracks(); });
+
+function togglePlay() {
+  if (currentId === -1) { selectTrack(filtered()[0].id); return; }
+  if (audio.paused) audio.play();
+  else audio.pause();
+}
+
+function nextTrack() {
+  const ft = filtered();
+  if (!ft.length) return;
+  let next;
+  if (isShuffle) next = ft[Math.floor(Math.random() * ft.length)].id;
+  else {
+    const ci = ft.findIndex(t => t.id === currentId);
+    next = ft[(ci + 1) % ft.length].id;
+  }
+  selectTrack(next);
+}
+
+function prevTrack() {
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  const ft = filtered();
+  if (!ft.length) return;
+  const ci = ft.findIndex(t => t.id === currentId);
+  selectTrack(ft[(ci - 1 + ft.length) % ft.length].id);
+}
+
+function toggleLike() {
+  const t = currentTrack();
+  if (!t) return;
+  liked.has(t.id) ? liked.delete(t.id) : liked.add(t.id);
+  updatePlayer();
+}
+
+function toggleShuffle() {
+  isShuffle = !isShuffle;
+  document.getElementById('shuffleBtn').classList.toggle('on', isShuffle);
+}
+
+function toggleRepeat() {
+  isRepeat = !isRepeat;
+  audio.loop = isRepeat;
+  document.getElementById('repeatBtn').classList.toggle('on', isRepeat);
+}
+
+function seek(e) {
+  const bar  = document.getElementById('progressBar');
+  const rect = bar.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  if (audio.duration) audio.currentTime = pct * audio.duration;
+}
+
+function setVol(v) {
+  audio.volume = v / 100;
+  document.getElementById('volIcon').textContent = v < 10 ? '🔇' : v < 50 ? '🔈' : '🔊';
+}
+
+updateCounts();
+renderTracks();
+</script>
+</body>
+</html>
